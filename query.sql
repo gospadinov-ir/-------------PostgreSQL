@@ -1,3 +1,19 @@
+--Задание 5
+--Рассчитать выручку за апрель и май 2021 в разрезе товара и вывести разницу выручки мая относительно апреля.
+--Апрель 2021	Май 2021	Сравнение
+SELECT
+	prs.product_id,
+	SUM(prs.product_price)
+		FILTER (WHERE EXTRACT (month from s.sales_date_time) IN (3)) AS "Май 2021",
+	SUM(prs.product_price)
+		FILTER (WHERE EXTRACT (month from s.sales_date_time) IN (4)) AS "Апрель 2021"
+FROM sales s
+JOIN product_sales prs USING (sales_id)
+JOIN pharm ph USING (pharm_id)
+JOIN locality l ON  l.locality_id = ph.locality_id
+WHERE prs.count_of_packages > 15
+GROUP BY prs.product_id;
+
 --наполнение таблиц
 INSERT INTO product_type VALUES (1,	"Лекарственные препараты"), (2,	"Лекарственное растительное сырье в заводской упаковке");
 INSERT INTO product_prescription VALUES(1,	"Рецептурный"),(2,	"Не рецептурный");
@@ -23,3 +39,28 @@ select * from product_prescription;
 select * from product_to_product_type;
 select * from product_sales join product_ on products.product_id=
 select * from sales join product_sales USING (sales_id);
+
+--работа с JSON
+SELECT json_build_object ('name','Иван', 'surname', 'Петров', 'age', 30);
+SELECT '{"name" : "Иван", "surname" : "Петров", "age" : 30}'::jsonb -> 'age' as age;
+SELECT json_agg(json_build_object('name', client_name, 'age', age)) AS clients
+from clients;
+
+update clients c
+set json_data = (select to_jsonb(e.*)
+				from (select i.client_id, i.client_name, i.age
+					 from clients i
+					 where i.client_id = c.client_id) e);
+
+INSERT INTO clients VALUES
+	(DEFAULT,
+	'Семенов Семен',
+	21,
+	'{"client_id": 2,"name" : "Семенов Семен","age" : 30,"phone": 9003004050}'
+	);
+
+ALTER TABLE clients ADD COLUMN phone integer;
+
+UPDATE clients
+SET phone = (select json_data::integer ->> 3)
+	WHERE client_id =2;
